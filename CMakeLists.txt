@@ -25,3 +25,8 @@ find_package(OpenMP REQUIRED)
 
 add_executable(matrix_openmp src/openmp_main.cpp src/openmp.cpp)
 target_link_libraries(matrix_openmp PRIVATE matrix_core OpenMP::OpenMP_CXX)
+
+find_package(MPI REQUIRED COMPONENTS CXX)
+
+add_executable(matrix_mpi src/mpi.cpp)
+target_link_libraries(matrix_mpi PRIVATE matrix_core MPI::MPI_CXX)

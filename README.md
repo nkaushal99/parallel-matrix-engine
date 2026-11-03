@@ -1,17 +1,17 @@
 # Parallel Matrix Engine
 
-A staged C++17 matrix-multiplication project. It includes naive, loop-reordered, cache-blocked, and OpenMP-parallel kernels for comparing memory-access patterns.
+A staged C++17 matrix-multiplication project. It includes naive, loop-reordered, cache-blocked, OpenMP-parallel, and MPI distributed-memory kernels for comparing memory-access patterns.
 
 ## Layout
 
 ```text
 include/     Shared matrix, kernel, and timing interfaces
-src/         Naive, reordered, blocked, and OpenMP kernels and drivers
+src/         Naive, reordered, blocked, OpenMP, and MPI kernels and drivers
 ```
 
 ## Build
 
-Install a C++17 compiler and CMake.
+Install a C++17 compiler, CMake, and an MPI implementation such as OpenMPI.
 
 ```bash
 mkdir build
@@ -20,7 +20,7 @@ cmake ..
 cmake --build .
 ```
 
-These commands create `matrix_naive`, `matrix_reordered`, `matrix_blocked`, and `matrix_openmp` in the `build/` directory.
+These commands create `matrix_naive`, `matrix_reordered`, `matrix_blocked`, `matrix_openmp`, and `matrix_mpi` in the `build/` directory.
 
 ## Run
 
@@ -49,6 +49,20 @@ Compared with processing whole matrices at once, those smaller working sets are 
 
 `matrix_openmp` parallelises independent output tiles with `#pragma omp parallel for collapse(2) schedule(static)`. Each thread owns a distinct `C` tile and processes every corresponding `k` tile itself, so no threads write the same output elements. Matrices `A` and `B` are shared read-only; the cache-blocked `i-k-j` computation remains local to each assigned output tile.
 
-## Planned progression
+## MPI distributed-memory parallelism
 
-The next planned step is MPI. It should retain correctness verification against the naive baseline.
+`matrix_mpi` gives each MPI rank a contiguous block of rows from `A` using `MPI_Scatterv`; uneven row counts are handled when the matrix size is not evenly divisible by the rank count. It broadcasts the full read-only matrix `B` with `MPI_Bcast`, runs the existing blocked kernel on each rank's local rows, and reassembles `C` with `MPI_Gatherv`.
+
+Each rank computes a local output sum, and `MPI_Allreduce` combines those values into the global `result_sum`. The reported duration is the slowest rank's elapsed time and includes the distribution, local computation, gather, and reduction phases. Verify that the global result sum matches the sequential baseline.
+
+### Launch with a host file
+
+`hosts.example` is a committed template. Copy it to `hosts`, then replace the host names and `slots` values with the machines and available MPI ranks in your environment. The local `hosts` file is ignored by Git because it is machine-specific.
+
+From the `build/` directory, launch with:
+
+```bash
+mpiexec --hostfile ../hosts ./matrix_mpi
+```
+
+For example, a host file with two slots on each of two hosts launches four ranks by default. Add `-n N` when you need to run fewer ranks than the total listed slots.

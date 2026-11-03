@@ -1,0 +1,4 @@
+# Copy this file to "hosts" and replace host names and slot counts for your cluster.
+# Each slot permits one MPI rank. Host names must resolve from the launch node.
+node-a slots=2
+node-b slots=2

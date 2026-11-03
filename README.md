@@ -1,12 +1,12 @@
 # Parallel Matrix Engine
 
-A staged C++17 matrix-multiplication project. It includes naive, loop-reordered, and cache-blocked sequential kernels for comparing memory-access patterns.
+A staged C++17 matrix-multiplication project. It includes naive, loop-reordered, cache-blocked, and OpenMP-parallel kernels for comparing memory-access patterns.
 
 ## Layout
 
 ```text
 include/     Shared matrix, kernel, and timing interfaces
-src/         Naive, reordered, and cache-blocked kernels and drivers
+src/         Naive, reordered, blocked, and OpenMP kernels and drivers
 ```
 
 ## Build
@@ -20,7 +20,7 @@ cmake ..
 cmake --build .
 ```
 
-These commands create `matrix_naive`, `matrix_reordered`, and `matrix_blocked` in the `build/` directory.
+These commands create `matrix_naive`, `matrix_reordered`, `matrix_blocked`, and `matrix_openmp` in the `build/` directory.
 
 ## Run
 
@@ -28,9 +28,10 @@ These commands create `matrix_naive`, `matrix_reordered`, and `matrix_blocked` i
 ./matrix_naive
 ./matrix_reordered
 ./matrix_blocked
+OMP_NUM_THREADS=4 ./matrix_openmp
 ```
 
-All three executables print machine-readable `key=value` output. The `result_sum` values must match; compare `time_ms` to measure the effect of each optimization.
+All executables print machine-readable `key=value` output. The `result_sum` values must match; compare `time_ms` to measure the effect of each optimization. Set `OMP_NUM_THREADS` to test a chosen OpenMP thread count.
 
 ## Loop-order optimisation
 
@@ -44,6 +45,10 @@ All three executables print machine-readable `key=value` output. The `result_sum
 
 Compared with processing whole matrices at once, those smaller working sets are more likely to remain in cache while their values are reused. In particular, a tile of `C` is updated repeatedly across the matching `k` tiles before moving to the next output tile, reducing cache evictions and memory traffic. This can improve performance beyond loop reordering alone, although the best tile size depends on the CPU cache hierarchy. Boundary checks retain correctness when a matrix dimension is not divisible by 32.
 
+## OpenMP parallelism
+
+`matrix_openmp` parallelises independent output tiles with `#pragma omp parallel for collapse(2) schedule(static)`. Each thread owns a distinct `C` tile and processes every corresponding `k` tile itself, so no threads write the same output elements. Matrices `A` and `B` are shared read-only; the cache-blocked `i-k-j` computation remains local to each assigned output tile.
+
 ## Planned progression
 
-Subsequent commits will add, in order: OpenMP and MPI. Each should retain correctness verification against the naive baseline.
+The next planned step is MPI. It should retain correctness verification against the naive baseline.

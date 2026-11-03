@@ -20,3 +20,8 @@ target_link_libraries(matrix_reordered PRIVATE matrix_core)
 
 add_executable(matrix_blocked src/blocked_main.cpp)
 target_link_libraries(matrix_blocked PRIVATE matrix_core)
+
+find_package(OpenMP REQUIRED)
+
+add_executable(matrix_openmp src/openmp_main.cpp src/openmp.cpp)
+target_link_libraries(matrix_openmp PRIVATE matrix_core OpenMP::OpenMP_CXX)

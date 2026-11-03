@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(parallel_matrix_engine LANGUAGES CXX)
+
+# Directly force Release mode for all builds
+set(CMAKE_BUILD_TYPE "Release" FORCE)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_library(matrix_core src/matrix.cpp src/naive.cpp)
+target_include_directories(matrix_core PUBLIC include)
+
+add_executable(matrix_naive src/main.cpp)
+target_link_libraries(matrix_naive PRIVATE matrix_core)

@@ -9,8 +9,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_library(matrix_core src/matrix.cpp src/naive.cpp)
+add_library(matrix_core src/matrix.cpp src/naive.cpp src/reordered.cpp)
 target_include_directories(matrix_core PUBLIC include)
 
 add_executable(matrix_naive src/main.cpp)
 target_link_libraries(matrix_naive PRIVATE matrix_core)
+
+add_executable(matrix_reordered src/reordered_main.cpp)
+target_link_libraries(matrix_reordered PRIVATE matrix_core)

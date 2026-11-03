@@ -1,12 +1,12 @@
 # Parallel Matrix Engine
 
-The initial baseline for a staged C++17 matrix-multiplication project. This commit intentionally contains only a correct, naive sequential kernel with `i-j-k` loop order. It is the reference implementation against which later cache and parallel variants will be validated.
+A staged C++17 matrix-multiplication project. It includes a correct naive baseline and a loop-reordered sequential kernel for comparing memory-access patterns.
 
 ## Layout
 
 ```text
 include/     Shared matrix, kernel, and timing interfaces
-src/         Matrix storage, naive kernel, and command-line driver
+src/         Naive and loop-reordered sequential kernels and drivers
 ```
 
 ## Build
@@ -20,16 +20,21 @@ cmake ..
 cmake --build .
 ```
 
-These commands create the `matrix_naive` executable in the `build/` directory.
+These commands create `matrix_naive` and `matrix_reordered` in the `build/` directory.
 
 ## Run
 
 ```bash
 ./matrix_naive
+./matrix_reordered
 ```
 
-The executable prints machine-readable `key=value` output, including elapsed time and a deterministic result sum. Preserve that sum when adding later variants to establish correctness.
+Both executables print machine-readable `key=value` output. The `result_sum` values must match; compare `time_ms` to measure the effect of the loop order.
+
+## Loop-order optimisation
+
+`matrix_naive` uses `i-j-k`, which reads down a column of row-major matrix `B` in its innermost loop. `matrix_reordered` uses `i-k-j`, making the innermost loop traverse contiguous elements of `B` and the output row of `C`. This improves spatial locality and cache-line use without changing the mathematical result.
 
 ## Planned progression
 
-Subsequent commits will add, in order: loop reordering, cache blocking, OpenMP, and MPI. Each should retain correctness verification against this baseline.
+Subsequent commits will add, in order: cache blocking, OpenMP, and MPI. Each should retain correctness verification against the naive baseline.

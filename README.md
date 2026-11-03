@@ -33,7 +33,9 @@ Both executables print machine-readable `key=value` output. The `result_sum` val
 
 ## Loop-order optimisation
 
-`matrix_naive` uses `i-j-k`, which reads down a column of row-major matrix `B` in its innermost loop. `matrix_reordered` uses `i-k-j`, making the innermost loop traverse contiguous elements of `B` and the output row of `C`. This improves spatial locality and cache-line use without changing the mathematical result.
+`matrix_naive` uses `i-j-k`. With row-major storage, changing `k` in the inner loop reads `B[k][j]`: one element from each successive row of `B`. Those accesses are separated by an entire row, so most of each fetched cache line is not reused immediately.
+
+`matrix_reordered` uses `i-k-j`. Its inner loop reads `B[k][j]` and writes `C[i][j]` while `j` increases, so both accesses move through contiguous elements in a row. A cache line fetched for `B[k][j]` or `C[i][j]` therefore supplies several upcoming iterations, improving spatial locality and cache-line utilisation without changing the mathematical result.
 
 ## Planned progression
 

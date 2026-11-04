@@ -66,3 +66,47 @@ mpiexec --hostfile ../hosts ./matrix_mpi
 ```
 
 For example, a host file with two slots on each of two hosts launches four ranks by default. Add `-n N` when you need to run fewer ranks than the total listed slots.
+
+## Benchmark data and graphs
+
+Raw measurements are tracked in `data/benchmarks.csv`. Run each configuration 10 times; the plotting script uses the median of repeated runs. From the `build/` directory, run:
+
+```bash
+for run in $(seq 1 10); do ./matrix_naive | python3 ../scripts/record_benchmark.py; done
+for run in $(seq 1 10); do ./matrix_reordered | python3 ../scripts/record_benchmark.py; done
+for run in $(seq 1 10); do ./matrix_blocked | python3 ../scripts/record_benchmark.py; done
+for run in $(seq 1 10); do OMP_NUM_THREADS=1 ./matrix_openmp | python3 ../scripts/record_benchmark.py; done
+for run in $(seq 1 10); do OMP_NUM_THREADS=2 ./matrix_openmp | python3 ../scripts/record_benchmark.py; done
+for run in $(seq 1 10); do OMP_NUM_THREADS=4 ./matrix_openmp | python3 ../scripts/record_benchmark.py; done
+for run in $(seq 1 10); do mpiexec --hostfile ../hosts ./matrix_mpi | python3 ../scripts/record_benchmark.py; done
+```
+
+To collect 100 runs later, replace `seq 1 10` with `seq 1 100` in the relevant command.
+
+After collecting the measurements, return to the repository root and generate the graphs:
+
+```bash
+    python3 scripts/plot_benchmarks.py
+```
+
+The plotting script requires Matplotlib (`sudo apt install python3-matplotlib` on Debian/Ubuntu), writes SVG graphs to `docs/plots/`, verifies that recorded result sums agree, and replaces the graph block below. Commit the CSV data, generated SVGs, and README update together.
+
+<!-- benchmark-plots:start -->
+![Median runtime by worker count](docs/plots/runtime-by-workers.svg)
+
+![Speedup relative to naive baseline](docs/plots/speedup-vs-naive.svg)
+<!-- benchmark-plots:end -->
+
+### Recorded results
+
+The current dataset contains 110 successful runs per implementation for 512 × 512 matrices. Sequential variants use one worker; OpenMP uses two threads; MPI uses two ranks. Every recorded checksum is `-198.146`, matching the naive baseline.
+
+| Implementation | Configuration | Median runtime (ms) | Speedup vs. naive |
+|---|---|---:|---:|
+| Naive | 1 worker | 2285.159 | 1.000× |
+| Loop reordered | 1 worker | 1593.818 | 1.434× |
+| Cache blocked | 32 × 32 tiles, 1 worker | 1463.679 | 1.561× |
+| OpenMP blocked | 32 × 32 tiles, 2 threads | 680.567 | 3.358× |
+| MPI blocked | 32 × 32 tiles, 2 ranks on same node | 577.418 | 3.958× |
+
+The loop-reordered kernel reduces median runtime by about 30% relative to the naive baseline; blocking increases that reduction to about 36%. The measured MPI median is about 18% lower than the two-thread OpenMP median in this setup. That comparison is configuration-specific: MPI ranks may be scheduled across different VMs, while OpenMP threads share one VM, so it does not establish that MPI is inherently faster than OpenMP on identical hardware.
